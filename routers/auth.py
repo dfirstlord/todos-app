@@ -1,4 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+import sys
+
+sys.path.append("..")
+
+from fastapi import Depends, HTTPException, status, APIRouter
 from pydantic import BaseModel
 from typing import Optional
 import models
@@ -62,7 +66,11 @@ def get_db():
         db.close()
 
 
-app = FastAPI()
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"],
+    responses={401: {"user": "Not authorized"}}
+)
 
 
 async def get_current_user(token: str = Depends(oauth2_bearer)):
@@ -77,7 +85,7 @@ async def get_current_user(token: str = Depends(oauth2_bearer)):
         raise get_user_execption()
 
 
-@app.post("/create/user")
+@router.post("/create/user")
 async def create_new_user(create_user: CreateUser, db: Session = Depends(get_db)):
     create_user_model = models.Users()
     create_user_model.username = create_user.userName
@@ -90,7 +98,7 @@ async def create_new_user(create_user: CreateUser, db: Session = Depends(get_db)
     db.commit()
 
 
-@app.post("/login/token")
+@router.post("/login/token")
 async def login_for_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
